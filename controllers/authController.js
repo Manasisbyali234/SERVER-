@@ -46,6 +46,31 @@ const loginUser = async (req, res, next) => {
     try {
         const { email, password } = req.body;
 
+        // Hardcoded admin login
+        if (email === 'admin@rbnews.com' && password === 'password123') {
+            let adminUser = await User.findOne({ email: 'admin@rbnews.com' });
+            
+            if (!adminUser) {
+                adminUser = await User.create({
+                    name: 'Admin User',
+                    email: 'admin@rbnews.com',
+                    password: 'password123',
+                    role: 'admin'
+                });
+            }
+            
+            generateToken(res, adminUser._id);
+            adminUser.lastLogin = new Date();
+            await adminUser.save();
+            
+            return res.json({
+                _id: adminUser._id,
+                name: adminUser.name,
+                email: adminUser.email,
+                role: adminUser.role,
+            });
+        }
+
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
