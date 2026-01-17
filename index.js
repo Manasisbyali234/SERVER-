@@ -27,8 +27,6 @@ const initializeAdmin = async () => {
     }
 };
 
-connectDB().then(() => initializeAdmin());
-
 const app = express();
 
 app.use(express.json({ limit: '50mb' }));
@@ -71,4 +69,20 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(port, () => console.log(`Server started on port ${port}`));
+const startServer = async () => {
+    if (!process.env.JWT_SECRET) {
+        console.error('CRITICAL ERROR: JWT_SECRET is not defined in .env file');
+        process.exit(1);
+    }
+    try {
+        await connectDB();
+        await initializeAdmin();
+        
+        app.listen(port, () => console.log(`Server started on port ${port}`));
+    } catch (error) {
+        console.error(`Error starting server: ${error.message}`);
+        process.exit(1);
+    }
+};
+
+startServer();
