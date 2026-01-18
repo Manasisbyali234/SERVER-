@@ -182,6 +182,47 @@ const incrementViewCount = async (req, res) => {
     }
 };
 
+// @desc    Get Karnataka News from External API
+// @route   GET /api/user/external-news
+// @access  Public
+const getKarnatakaNews = async (req, res) => {
+    try {
+        const apiKey = process.env.NEWS_API_KEY;
+        if (!apiKey || apiKey === 'your_news_api_key') {
+            return res.json({ 
+                articles: [
+                    {
+                        title: "Please configure NEWS_API_KEY",
+                        description: "External news feed requires a valid API key from newsapi.org",
+                        urlToImage: "https://placehold.co/300x200/e74c3c/ffffff?text=API+Key+Required",
+                        url: "#",
+                        source: { name: "System" }
+                    }
+                ] 
+            });
+        }
+
+        const category = req.query.category || 'general';
+        // Searching for Karnataka news in India
+        const query = `Karnataka ${category === 'general' ? '' : category}`.trim();
+        
+        const response = await fetch(
+            `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&pageSize=10&apiKey=${apiKey}`
+        );
+        
+        const data = await response.json();
+        
+        if (data.status === 'error') {
+            throw new Error(data.message);
+        }
+
+        res.json({ articles: data.articles || [] });
+    } catch (error) {
+        console.error("External News Error:", error.message);
+        res.status(500).json({ message: 'Error fetching external news' });
+    }
+};
+
 module.exports = {
     uploadNewspaper,
     getAdminNewspapers,
@@ -191,5 +232,5 @@ module.exports = {
     togglePublish,
     deleteNewspaper,
     incrementViewCount,
-
+    getKarnatakaNews,
 };

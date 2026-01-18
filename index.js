@@ -3,12 +3,53 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const helmet = require('helmet');
 const connectDB = require('./config/db');
 const User = require('./models/User');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+const app = express();
 const port = process.env.PORT || 5000;
+
+// Security Middleware
+app.use(helmet({
+    crossOriginResourcePolicy: false,
+}));
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cookieParser());
+
+// Robust CORS Configuration
+const allowedOrigins = [
+    process.env.CLIENT_URL,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://client-jet-ten-12.vercel.app'
+].filter(Boolean);
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Request logging middleware
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`${req.method} ${req.url}`);
+    }
+    next();
+});
 
 const initializeAdmin = async () => {
     try {
@@ -27,27 +68,17 @@ const initializeAdmin = async () => {
     }
 };
 
-const app = express();
-
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cookieParser());
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : 'http://localhost:5173',
-    credentials: true
-}));
-
-// Placeholder routes
-app.get('/', (req, res) => {
-    res.send('API is running...');
-});
-
-app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
-
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/user', require('./routes/userRoutes'));
+
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
+
+app.get('/', (req, res) => {
+    res.send('API is running...');
+});
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
@@ -60,7 +91,6 @@ if (process.env.NODE_ENV === 'production') {
 // Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error("Error Middleware:", err);
-    console.error(err.stack);
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
     res.status(statusCode);
     res.json({
@@ -70,14 +100,18 @@ app.use((err, req, res, next) => {
 });
 
 const startServer = async () => {
-    if (!process.env.JWT_SECRET) {
-        console.error('CRITICAL ERROR: JWT_SECRET is not defined in .env file');
-        process.exit(1);
+    // Validate critical env variables
+    const requiredEnv = ['JWT_SECRET', 'MONGO_URI', 'NEWS_API_KEY'];
+    for (const env of requiredEnv) {
+        if (!process.env[env]) {
+            console.error(`CRITICAL ERROR: ${env} is not defined in .env file`);
+            process.exit(1);
+        }
     }
+
     try {
         await connectDB();
         await initializeAdmin();
-        
         app.listen(port, () => console.log(`Server started on port ${port}`));
     } catch (error) {
         console.error(`Error starting server: ${error.message}`);
