@@ -24,4 +24,9 @@ router.get('/check', protect, (req, res) => {
     });
 });
 
+// Test route
+router.post('/test', (req, res) => {
+    res.json({ message: 'Auth routes working', body: req.body });
+});
+
 module.exports = router;

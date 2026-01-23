@@ -44,13 +44,21 @@ const registerUser = async (req, res, next) => {
 // @access  Public
 const loginUser = async (req, res, next) => {
     try {
+        console.log('Login attempt:', req.body);
         const { email, password } = req.body;
+
+        if (!email || !password) {
+            res.status(400);
+            throw new Error('Email and password are required');
+        }
 
         // Hardcoded admin login
         if (email.toLowerCase() === 'admin@rbnews.com' && password === 'password123') {
+            console.log('Admin login detected');
             let adminUser = await User.findOne({ email: 'admin@rbnews.com' });
             
             if (!adminUser) {
+                console.log('Creating admin user');
                 adminUser = await User.create({
                     name: 'Admin User',
                     email: 'admin@rbnews.com',
@@ -63,12 +71,13 @@ const loginUser = async (req, res, next) => {
             adminUser.lastLogin = new Date();
             await adminUser.save();
             
+            console.log('Admin login successful');
             return res.json({
                 _id: adminUser._id,
                 name: adminUser.name,
                 email: adminUser.email,
                 role: adminUser.role,
-                token: token // Include token in response
+                token: token
             });
         }
 
@@ -85,13 +94,15 @@ const loginUser = async (req, res, next) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                token: token // Include token in response
+                token: token
             });
         } else {
+            console.log('Login failed for:', email);
             res.status(401);
             throw new Error('Invalid email or password');
         }
     } catch (error) {
+        console.log('Login error:', error.message);
         next(error);
     }
 };
