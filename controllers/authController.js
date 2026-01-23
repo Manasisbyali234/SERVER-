@@ -59,7 +59,7 @@ const loginUser = async (req, res, next) => {
                 });
             }
             
-            generateToken(res, adminUser._id);
+            const token = generateToken(res, adminUser._id);
             adminUser.lastLogin = new Date();
             await adminUser.save();
             
@@ -68,13 +68,14 @@ const loginUser = async (req, res, next) => {
                 name: adminUser.name,
                 email: adminUser.email,
                 role: adminUser.role,
+                token: token // Include token in response
             });
         }
 
         const user = await User.findOne({ email: email.toLowerCase() });
 
         if (user && (await user.matchPassword(password))) {
-            generateToken(res, user._id);
+            const token = generateToken(res, user._id);
 
             user.lastLogin = new Date();
             await user.save();
@@ -84,6 +85,7 @@ const loginUser = async (req, res, next) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                token: token // Include token in response
             });
         } else {
             res.status(401);

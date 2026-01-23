@@ -26,21 +26,17 @@ const allowedOrigins = [
     process.env.CLIENT_URL,
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'https://client-jet-ten-12.vercel.app'
+    'https://client-jet-ten-12.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
 ].filter(Boolean);
 
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
-        }
-        return callback(null, true);
-    },
+    origin: true, // Allow all origins for now
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
+    exposedHeaders: ['Set-Cookie']
 }));
 
 // Request logging middleware
